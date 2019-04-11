@@ -1,0 +1,19 @@
+<a href="<?php echo base_url.'?log_out'; ?>" style="position: absolute;top: 20px;right: 20px;">Вийти</a>
+<?php 
+$row_login = $this->get('row_login');
+echo 'Привіт '.$row_login['1'].'!<br/><br/>'; ?>
+<h2>Ваші дані</h2>
+<p>Зображення:</p>
+<?php if (!empty($row_login['6'])) { ?>
+<img src="<?php echo base_url.'gallery/'.$row_login['6']; ?>" style="width: 200px;height: 200px;object-fit: contain;display: block;">
+<?php } else { ?>
+<img src="<?php echo base_url.'gallery/noavatar.png'; ?>" style="width: 200px;height: 200px;object-fit: contain;display: block;">
+<?php } ?>
+<br/>
+<p>Ваше ім'я: <?php echo $row_login[1]; ?></p>
+<p>Ваше прізвіще: <?php echo $row_login[2]; ?></p>
+<p>Дата день народження: <?php if ($row_login[3] != '0000-00-00') {
+	 echo $row_login[3];
+} else {
+	echo "Не вказано";
+}?></p>

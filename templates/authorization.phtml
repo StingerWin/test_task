@@ -1,0 +1,192 @@
+<?php 
+$db = $this->registry->get('db');
+
+if (!isset($_GET['log_in']) && !isset($_GET['log_out'])) {
+	$title = 'Реєстрація';
+	if (isset($_POST['registration'])) {
+		$errors = array();
+		if (empty($_POST['name'])) {
+			$errors = 'Введіть, будь ласка, своє ім`я!';
+		} elseif (empty($_POST['surname'])) {
+			$errors = 'Введіть, будь ласка, своє прізвище!';
+		} elseif (empty($_POST['login'])) {
+			$errors = 'Введіть, будь ласка, свій логін!';
+		} elseif (empty($_POST['password'])) {
+			$errors = 'Введіть, будь ласка, свій пароль!';
+		} elseif (empty($_POST['confirm_password'])) {
+			$errors = 'Введіть, будь ласка, пітвердження пароля!';
+		} elseif ($_POST['password'] != $_POST['confirm_password']) {
+			$errors = 'Пароль і пітвердження пароля <b>не співпадають</b>!';
+		} 
+
+		if (empty($errors)) {
+			$name = htmlspecialchars(trim($_POST['name']));
+			$surname = htmlspecialchars(trim($_POST['surname']));
+			$birthday = htmlspecialchars(trim($_POST['birthday']));
+			$login = htmlspecialchars(trim($_POST['login']));
+			$password = htmlspecialchars(trim(md5($_POST['password'])));
+
+			$query_login = "SELECT * FROM `registered_users` WHERE login='$login'";
+			$result_login = mysqli_query($db, $query_login);
+			$num_login = mysqli_num_rows($result_login);
+			if ($num_login != 0) {
+				$errors = 'Логін <b>"'.$login.'"</b> вже існує. Будь ласка, введіть інший логін!';
+			} else {
+				
+			}
+		}
+
+		if (empty($errors)) {
+			if(isset($_FILES['file'])) {
+
+				$filePath  = $_FILES['file']['tmp_name'];
+				$errorCode = $_FILES['file']['error'];
+				if (0 < $_FILES['file']['error'] || !is_uploaded_file($filePath)) {
+
+					$errors = 'Error: ' . $_FILES['file']['error'];
+				}
+
+				if (empty($errors)) {
+					$fi = finfo_open(FILEINFO_MIME_TYPE);
+
+					$mime = (string) finfo_file($fi, $filePath);
+
+					if (strpos($mime, 'image') === false) $errors = 'Можно загружать только изображения.';
+				}
+				if (empty($errors)) {
+					$image = getimagesize($filePath);
+
+					$limitBytes  = 1024 * 1024 * 5;
+					if (filesize($filePath) > $limitBytes) $errors = 'Размер изображения не должен превышать 5 Мбайт.';
+				}
+				if (empty($errors)) {
+					$nameImage = date('Ymd').hash('crc32',time());
+
+					$extension = image_type_to_extension($image[2]);
+
+					$format = str_replace('jpeg', 'jpg', $extension);
+
+
+					if (move_uploaded_file($filePath, dirname(__DIR__) . '/gallery/' . $nameImage . $format)) {
+						$query_insert = "INSERT INTO `registered_users`(`id`, `name`, `surname`, `birthday`, `login`, `password`,`image`) VALUES (null,'$name','$surname','$birthday','$login','$password','$nameImage$format')";
+						if (mysqli_query($db, $query_insert)) {
+							header("Location:" .base_url .'?log_in');           
+						} else {
+							$errors = 'Виникла помилка при реєстрації, попробуйте ще раз!';
+						}
+					} else {
+						$errors = 'При загрузке изображения произошла ошибка.';
+					}
+				}
+			} else {
+				$query_insert = "INSERT INTO `registered_users`(`id`, `name`, `surname`, `birthday`, `login`, `password`,`image`) VALUES (null,'$name','$surname','$birthday','$login','$password','')";
+				if (mysqli_query($db, $query_insert)) {
+					header("Location:" .base_url .'?log_in');           
+				} else {
+					$errors = 'Виникла помилка при реєстрації, попробуйте ще раз!';
+				}
+			}
+		}
+		
+
+	}
+} else {
+	if (isset($_GET['log_in'])) {
+		$title = 'Вхід в лічний кабінет';
+		if (isset($_POST['login'])) {
+			$errors = array();
+			if (empty($_POST['login_login'])) {
+				$errors = 'Введіть, будь ласка, свій логін!';
+			} elseif (empty($_POST['password_login'])) {
+				$errors = 'Введіть, будь ласка, свій пароль!';
+			} 
+			if (empty($errors)) {
+				$login = htmlspecialchars(trim($_POST['login_login']));
+				$password = htmlspecialchars(trim(md5($_POST['password_login'])));
+
+				$query_login = "SELECT password FROM `registered_users` WHERE login='$login'";
+				$result_login = mysqli_query($db, $query_login);
+				$num_login = mysqli_num_rows($result_login);
+				$row_login = mysqli_fetch_array($result_login);
+				if ($num_login != 0) {
+					if ($row_login[0] != $password) {
+						$errors = 'Невірний пароль!';
+					}
+				} else {
+					$errors = 'Такого логіна <b>не існує</b>!';
+				}
+			}
+			if (empty($errors)) {
+				$_SESSION['login'] = $login;
+			}
+		}
+	}
+}
+
+?>
+<!DOCTYPE html> 
+<html lang="ua">
+<head>
+	<title><?php echo $title; ?></title>
+	<meta name="title" content="<?php echo $title; ?>" />
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>	
+	<main>
+		<?php 
+		if (!isset($_SESSION['login'])) { 
+			if (!isset($_GET['log_in']) && !isset($_GET['log_out'])) { ?>
+			<form action="<?php echo base_url ?>" method="post" enctype="multipart/form-data">
+				<h1>Реєстрація</h1>
+				<div style="color:red;">
+					<?php 
+					if (!empty($errors)) {
+						echo $errors;
+					}
+					?>
+				</div>	
+				<p>Ім'я<span style="color:red;">*</span></p>
+				<input type="text" name="name" value="<?php echo @$_POST['name'] ?>" placeholder="Введіть своє ім'я" required><br/>
+				<p>Прізвище<span style="color:red;">*</span></p>
+				<input type="text" name="surname" value="<?php echo @$_POST['surname'] ?>" placeholder="Введіть своє прізвище" required><br/>
+				<p>Загрузить зображення</p>
+				<input type="file" accept="image/x-png,image/gif,image/jpeg" name="file"/>
+				<p>Дата народження</p>
+				<input type="date" name="birthday" value="<?php echo @$_POST['birthday'] ?>" max="<?php echo date('Y-m-d'); ?>"><br/>
+				<p>Логін для входу<span style="color:red;">*</span></p>
+				<input type="text" name="login" value="<?php echo @$_POST['login'] ?>" placeholder="Введіть свій логін" required><br/>
+				<p>Пароль<span style="color:red;">*</span></p>
+				<input type="password" name="password" placeholder="Введіть свій пароль" required><br/>
+				<p>Пітвердження пароля<span style="color:red;">*</span></p>
+				<input type="password" name="confirm_password" placeholder="Введіть пітвердження пароля" required><br/><br/>
+				<button name="registration">Зареєстреватися</button>
+			</form>
+			<br/>
+			<a href="<?php echo base_url.'?log_in'; ?>">У мене вже є акаунт!</a>
+			<?php } else {
+				if (isset($_GET['log_in'])) { ?>
+				<form action="<?php echo base_url.'?log_in'; ?>" method="post">
+					<h1>Вхід в лічний кабінет</h1>
+					<div style="color:red;">
+						<?php 
+						if (!empty($errors)) {
+							echo $errors;
+						}
+						?>
+					</div>	
+					<p>Логін для входу<span style="color:red;">*</span></p>
+					<input type="text" name="login_login" value="<?php echo @$_POST['login_login'] ?>" placeholder="Введіть свій логін" required><br/>
+					<p>Пароль<span style="color:red;">*</span></p>
+					<input type="password" name="password_login" placeholder="Введіть свій пароль" required><br/><br/>
+					<button name="login">Ввійти</button>
+				</form>
+				<br/>
+				<a href="<?php echo base_url; ?>">Зареєструватись</a>
+				<?php }
+			} 
+		} else {
+			header("Location:" .base_url);
+		} ?>
+	</main>
+</body>
+</html>
