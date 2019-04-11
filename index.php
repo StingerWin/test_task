@@ -9,7 +9,7 @@ define ('DIRSEP', DIRECTORY_SEPARATOR);
     // Узнаём путь до файлов сайта
 $site_path = realpath(dirname(__FILE__)) . DIRSEP;
 define ('site_path', $site_path);
-define('base_url', 'http://' . $_SERVER['HTTP_HOST'] .'/site' . DIRSEP);
+define('base_url', 'http://' . $_SERVER['HTTP_HOST'] .'/test_task' . DIRSEP);
 PHP_OS == "Windows" ||
 PHP_OS == "WINNT" ? define("DS", "\\") : define("DS", "/"); 
 include ( site_path .'startup.php' );
